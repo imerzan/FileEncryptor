@@ -12,7 +12,7 @@ namespace FileEncryptor
         {
             if (_destFile is null | _destFile == String.Empty) _destFile = _sourceFile + ".encrypted"; // Set default output destination
             if (!File.Exists(_sourceFile)) throw new FileNotFoundException("Source filepath not found!");
-            using (var psk = new Rfc2898DeriveBytes(_password, 8, 10000)) // 10,000 Iterations of Rfc2898 using 8 byte Salt
+            using (var psk = new Rfc2898DeriveBytes(_password, 8, 100000, HashAlgorithmName.SHA512)) // 100,000 Iterations of Rfc2898 using 8 byte Salt
             using (var aes = new AesManaged() { Mode = CipherMode.CBC, KeySize = 256 }) // AES-CBC 256 Bits
             {
                 aes.Padding = PaddingMode.PKCS7;
@@ -39,10 +39,11 @@ namespace FileEncryptor
                 using (var hashWriter = new FileStream(_destFile, FileMode.Open, FileAccess.ReadWrite)) // Open output file for writing hash
                 using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                 {
-                    hashWriter.Position = 64; // Calculate hash after blank space
-                    byte[] computedHash = hmac.ComputeHash(hashWriter); // Compute hash from output file
+                    hashWriter.Position = 64; // Calculate hash starting with SALT/IV/PAYLOAD
+                    byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
+                    computedHash = hmac.ComputeHash(hashWriter); // Compute hash from output file
                     hashWriter.Position = 0; // Write to blank space at beginning of file
-                    hashWriter.Write(computedHash, 0, computedHash.Length); // Write hash value
+                    hashWriter.Write(computedHash, 0, computedHash.Length); // Write hash value (64 bytes)
                 }
             }
         }
@@ -59,7 +60,7 @@ namespace FileEncryptor
                 reader.Read(_hash, 0, _hash.Length); // Read 64 bytes for Hash
                 reader.Read(_salt, 0, _salt.Length); // Read 8 bytes for Salt
                 reader.Read(_iv, 0, _iv.Length); // Read 16 bytes for IV
-                using (var psk = new Rfc2898DeriveBytes(_password, _salt, 10000)) // 10,000 Iterations of Rfc2898 using provided 8 byte Salt
+                using (var psk = new Rfc2898DeriveBytes(_password, _salt, 100000, HashAlgorithmName.SHA512)) // 100,000 Iterations of Rfc2898 using provided 8 byte Salt
                 using (var aes = new AesManaged() { Mode = CipherMode.CBC, KeySize = 256 }) // AES-CBC 256 Bits
                 {
                     aes.Padding = PaddingMode.PKCS7;
@@ -70,12 +71,16 @@ namespace FileEncryptor
                     using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                     {
                         reader.Position = 64; // Read Salt/IV/Payload (skip hash portion)
-                        byte[] computedHash = hmac.ComputeHash(reader); // Compute hash from *source* file
+                        byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
+                        computedHash = hmac.ComputeHash(reader); // Compute hash from *source* file
                         reader.Position = 88; // Move back to previous reader position (after Salt/IV).
-                        if (_hash.Length != computedHash.Length) throw new CryptographicException("Hash values are different lengths!"); // Should never happen, but checking for good measure
-                        for (int i = 0; i < _hash.Length; i++)
+                        if (_hash.Length != computedHash.Length) throw new CryptographicException("Hash values are different lengths! Aborting decryption."); // Should never happen, but checking for good measure
+                        for (int i = 0; i < _hash.Length; i++) // Compare given hash value with computed hash value
                         {
-                            if (_hash[i] != computedHash[i]) throw new CryptographicException("Hash values do not match!"); // Compare given hash value with computed hash value
+                            if (_hash[i] != computedHash[i]) throw new CryptographicException("Hash values do not match! Aborting decryption.\n" +
+                                "Possible Causes:\n" +
+                                "1. Incorrect password provided.\n" +
+                                "2. File contents have been tampered with."); 
                         }
                     }
                     using (var writer = new FileStream(_destFile, FileMode.Create, FileAccess.Write)) // Open output file for writing
