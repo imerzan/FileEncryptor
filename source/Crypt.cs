@@ -22,7 +22,8 @@ namespace FileEncryptor
                 aes.GenerateIV(); // Generate Crypto Random IV
                 using (var writer = new FileStream(_destFile, FileMode.Create, FileAccess.Write)) // Open output file for writing
                 {
-                    writer.Position = 64; // Leave 64 bytes at the start of the file for the hash to be written later.
+                    writer.Write(Header.GetBytes(), 0, 2); // Write header (2 bytes)
+                    writer.Position = 66; // Leave 64 bytes at the start of the file (after 2 byte header) for the hash to be written later.
                     writer.Write(psk.Salt, 0, psk.Salt.Length); // Write salt as plaintext (8 bytes)
                     writer.Write(aes.IV, 0, aes.IV.Length); // Write IV as plaintext (16 bytes)
                     using (var reader = new FileStream(_sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading
@@ -39,10 +40,10 @@ namespace FileEncryptor
                 using (var hashWriter = new FileStream(_destFile, FileMode.Open, FileAccess.ReadWrite)) // Open output file for writing hash
                 using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                 {
-                    hashWriter.Position = 64; // Calculate hash starting with SALT/IV/PAYLOAD
+                    hashWriter.Position = 66; // Calculate hash starting with SALT/IV/PAYLOAD
                     byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
                     computedHash = hmac.ComputeHash(hashWriter); // Compute hash from output file
-                    hashWriter.Position = 0; // Write to blank space at beginning of file
+                    hashWriter.Position = 2; // Write to blank space at beginning of file (after 2 byte header)
                     hashWriter.Write(computedHash, 0, computedHash.Length); // Write hash value (64 bytes)
                 }
             }
@@ -50,13 +51,37 @@ namespace FileEncryptor
 
         public static void DecryptFile(string _password, string _sourceFile, string _destFile = null)
         {
-            if (_destFile is null | _destFile == String.Empty) _destFile = _sourceFile + ".plaintext"; // Set default output destination
             if (!File.Exists(_sourceFile)) throw new FileNotFoundException("Source filepath not found!");
+            byte[] _header = new byte[2];
+            using (var reader = new FileStream(_sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading header
+            {
+                reader.Read(_header, 0, _header.Length); // Read Header (2 bytes)
+            }
+            const string headerException = "Invalid file header!\n" +
+            "Possible Causes:\n" +
+            "1. File was encoded using a newer version of FileEncryptor than the one you are currently using.\n" +
+            "2. File header was tampered with.";
+            if (_header[0] != 0xFF) throw new Exception(headerException); // First bit always 0xFF
+            switch (_header[1]) // Evaluate Header for Version and run appropriate Decryption Function
+            {
+                case (byte)Version.CurrentVersion:
+                    DecryptFile_V1(_password, _sourceFile, _destFile);
+                    break;
+                default:
+                    throw new Exception(headerException);
+            }
+        }
+
+        // Version Definitions
+        private static void DecryptFile_V1(string _password, string _sourceFile, string _destFile = null)
+        {
+            if (_destFile is null | _destFile == String.Empty) _destFile = _sourceFile + ".plaintext"; // Set default output destination
             using (var reader = new FileStream(_sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading
             {
                 byte[] _hash = new byte[64];
                 byte[] _salt = new byte[8];
                 byte[] _iv = new byte[16];
+                reader.Position = 2; // Skip Header
                 reader.Read(_hash, 0, _hash.Length); // Read 64 bytes for Hash
                 reader.Read(_salt, 0, _salt.Length); // Read 8 bytes for Salt
                 reader.Read(_iv, 0, _iv.Length); // Read 16 bytes for IV
@@ -70,17 +95,17 @@ namespace FileEncryptor
                     aes.IV = _iv; // Use provided 16 byte IV
                     using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                     {
-                        reader.Position = 64; // Read Salt/IV/Payload (skip hash portion)
+                        reader.Position = 66; // Read Salt/IV/Payload (skip header/hash portion)
                         byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
                         computedHash = hmac.ComputeHash(reader); // Compute hash from *source* file
-                        reader.Position = 88; // Move back to previous reader position (after Salt/IV).
+                        reader.Position = 90; // Move back to previous reader position (after Salt/IV).
                         if (_hash.Length != computedHash.Length) throw new CryptographicException("Hash values are different lengths! Aborting decryption."); // Should never happen, but checking for good measure
                         for (int i = 0; i < _hash.Length; i++) // Compare given hash value with computed hash value
                         {
                             if (_hash[i] != computedHash[i]) throw new CryptographicException("Hash values do not match! Aborting decryption.\n" +
                                 "Possible Causes:\n" +
                                 "1. Incorrect password provided.\n" +
-                                "2. File contents have been tampered with."); 
+                                "2. File contents have been tampered with.");
                         }
                     }
                     using (var writer = new FileStream(_destFile, FileMode.Create, FileAccess.Write)) // Open output file for writing
@@ -95,6 +120,6 @@ namespace FileEncryptor
                     } // Close output file, CryptoStream
                 }
             } // Close source file
-        }
+        } // End DecryptFile_V1()
     }
 }
