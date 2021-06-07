@@ -12,7 +12,6 @@ namespace FileEncryptor
         {
             if (_destFile is null | _destFile == String.Empty) _destFile = _sourceFile + ".encrypted"; // Set default output destination
             if (!File.Exists(_sourceFile)) throw new FileNotFoundException("Source filepath not found!");
-            var header = new FileHeader();
             using (var psk = new Rfc2898DeriveBytes(_password, 8, 100000, HashAlgorithmName.SHA512)) // 100,000 Iterations of Rfc2898 using 8 byte Salt
             using (var aes = new AesManaged() { Mode = CipherMode.CBC, KeySize = 256 }) // AES-CBC 256 Bits
             {
@@ -23,8 +22,7 @@ namespace FileEncryptor
                 aes.GenerateIV(); // Generate Crypto Random IV
                 using (var writer = new FileStream(_destFile, FileMode.Create, FileAccess.Write)) // Open output file for writing
                 {
-                    writer.Write(header.Bytes, 0, header.Bytes.Length); // Write header (2 bytes)
-                    writer.Position = 66; // Leave 64 bytes at the start of the file (after 2 byte header) for the hash to be written later.
+                    writer.Position = 64; // Leave 64 bytes at the start of the file for the hash to be written later.
                     writer.Write(psk.Salt, 0, psk.Salt.Length); // Write salt as plaintext (8 bytes)
                     writer.Write(aes.IV, 0, aes.IV.Length); // Write IV as plaintext (16 bytes)
                     using (var reader = new FileStream(_sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading
@@ -41,10 +39,10 @@ namespace FileEncryptor
                 using (var hashWriter = new FileStream(_destFile, FileMode.Open, FileAccess.ReadWrite)) // Open output file for writing hash
                 using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                 {
-                    hashWriter.Position = 66; // Calculate hash of SALT/IV/PAYLOAD
+                    hashWriter.Position = 64; // Calculate hash starting with SALT/IV/PAYLOAD
                     byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
                     computedHash = hmac.ComputeHash(hashWriter); // Compute hash from output file
-                    hashWriter.Position = 2; // Write to blank space at beginning of file (after 2 byte header)
+                    hashWriter.Position = 0; // Write to blank space at beginning of file
                     hashWriter.Write(computedHash, 0, computedHash.Length); // Write hash value (64 bytes)
                 }
             }
@@ -56,9 +54,6 @@ namespace FileEncryptor
             if (!File.Exists(_sourceFile)) throw new FileNotFoundException("Source filepath not found!");
             using (var reader = new FileStream(_sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading
             {
-                byte[] _header = new byte[2];
-                reader.Read(_header, 0, _header.Length); // Read 2 bytes for Header
-                var header = new FileHeader(_header);
                 byte[] _hash = new byte[64];
                 byte[] _salt = new byte[8];
                 byte[] _iv = new byte[16];
@@ -75,10 +70,10 @@ namespace FileEncryptor
                     aes.IV = _iv; // Use provided 16 byte IV
                     using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                     {
-                        reader.Position = 66; // Read Salt/IV/Payload (skip header/hash portion)
+                        reader.Position = 64; // Read Salt/IV/Payload (skip hash portion)
                         byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
                         computedHash = hmac.ComputeHash(reader); // Compute hash from *source* file
-                        reader.Position = 90; // Move back to previous reader position (after Salt/IV).
+                        reader.Position = 88; // Move back to previous reader position (after Salt/IV).
                         if (_hash.Length != computedHash.Length) throw new CryptographicException("Hash values are different lengths! Aborting decryption."); // Should never happen, but checking for good measure
                         for (int i = 0; i < _hash.Length; i++) // Compare given hash value with computed hash value
                         {
