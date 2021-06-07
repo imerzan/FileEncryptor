@@ -26,7 +26,10 @@ namespace FileEncryptor
                 case (byte)Version.Current:
                     break;
                 default:
-                    throw new Exception("Invalid file header! Possible file tampering/corruption.");
+                    throw new Exception("Invalid file header!\n" +
+                        "Possible Causes:\n" +
+                        "1. File was encoded using a newer version of FileEncryptor than the one you are currently using.\n" +
+                        "2. File was modified/corrupted.");
             }
         }
 
