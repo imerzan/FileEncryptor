@@ -12,6 +12,7 @@ namespace FileEncryptor
 
     public enum Version : byte
     {
-        CurrentVersion = 0x01 // V1
+        CurrentVersion = 0x02, // V2
+        V1 = 0x01
     }
 }
