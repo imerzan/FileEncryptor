@@ -59,17 +59,17 @@ namespace FileEncryptor
         {
             if (!File.Exists(sourceFile)) throw new FileNotFoundException("Source file not found!");
             if (destFile is null || destFile.Trim() == String.Empty) throw new IOException("Must provide a destination filepath!");
-            byte[] _header = new byte[2];
+            byte[] header = new byte[2];
             using (var reader = new FileStream(sourceFile, FileMode.Open, FileAccess.Read)) // Open source file for reading header
             {
-                reader.Read(_header, 0, _header.Length); // Read Header (2 bytes)
+                reader.Read(header, 0, header.Length); // Read Header (2 bytes)
             }
             const string headerException = "Invalid file header!\n" +
             "Possible Causes:\n" +
             "1. File was encoded using a newer version of FileEncryptor than the one you are currently using.\n" +
             "2. File header was modified/corrupted.";
-            if (_header[0] != 0xFF) throw new Exception(headerException); // First bit always 0xFF
-            switch (_header[1]) // Evaluate Header for Version and run appropriate Decryption Function
+            if (header[0] != 0xFF) throw new Exception(headerException); // First bit always 0xFF
+            switch (header[1]) // Evaluate Header for Version and run appropriate Decryption Function
             {
                 case (byte)Version.CurrentVersion:
                     DecryptFile_V2(password, sourceFile, destFile);
@@ -103,10 +103,10 @@ namespace FileEncryptor
                     BlockSize = 128 // 128 Bits Block/IV
                 })
                 {
-                    byte[] _key = psk.GetBytes(96); // Derive key from RfcC2898
-                    aes.Key = _key.Take(32).ToArray(); // Use 32 Bytes (256 Bits) for Encryption Key
+                    byte[] key = psk.GetBytes(96); // Derive key from RfcC2898
+                    aes.Key = key.Take(32).ToArray(); // Use 32 Bytes (256 Bits) for Encryption Key
                     aes.IV = iv; // Use provided 16 byte IV
-                    using (var hmac = new HMACSHA512(_key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
+                    using (var hmac = new HMACSHA512(key.Skip(32).Take(64).ToArray())) // Take next 64 bytes (512 Bits) for Hash Key
                     {
                         reader.Position = 66; // Read Salt/IV/Payload (skip header/hash portion)
                         byte[] computedHash = new byte[64]; // Allocate 64 byte array for computed hash
