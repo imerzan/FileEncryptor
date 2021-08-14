@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace FileEncryptor
+﻿namespace FileEncryptor
 {
     internal static class Header
     {

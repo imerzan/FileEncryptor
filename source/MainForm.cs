@@ -34,13 +34,10 @@ namespace FileEncryptor
             if (this.inputFileDialog.ShowDialog() == DialogResult.OK) // Dialog 'OK' Pressed
             {
                 this.textBox_InputPath.Text = this.inputFileDialog.FileName; // Set textbox
-                if (this.textBox_OutputPath.Text == String.Empty) // If: Output is empty
-                {
-                    if (this.radioButton_Encrypt.Checked) // If: Mode = Encrypt
-                        this.textBox_OutputPath.Text = this.inputFileDialog.FileName + ".encrypted"; // Set default output
-                    else // Mode = Decrypt
-                        this.textBox_OutputPath.Text = this.inputFileDialog.FileName + ".plaintext"; // Set default output
-                }
+                if (this.radioButton_Encrypt.Checked) // If: Mode = Encrypt
+                    this.textBox_OutputPath.Text = this.inputFileDialog.FileName + ".encrypted"; // Set default output
+                else // Mode = Decrypt
+                    this.textBox_OutputPath.Text = this.inputFileDialog.FileName + ".plaintext"; // Set default output
             }
         }
 
