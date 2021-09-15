@@ -10,7 +10,8 @@
 
     public enum Version : byte
     {
-        CurrentVersion = 0x02, // V2
+        CurrentVersion = 0x03, // V3
+        V2 = 0x02,
         V1 = 0x01
     }
 }
