@@ -4,7 +4,7 @@
 ## Information:
 * Runs on Windows x86/x64 (Winforms Application)
 * Uses AES-256-CBC to Encrypt/Decrypt files.
-* Encryption key derived from 100,000 iterations of salted [Rfc2898](https://tools.ietf.org/html/rfc2898)
+* Encryption key derived from ~237,000 iterations of salted [Rfc2898](https://tools.ietf.org/html/rfc2898)
 * Uses HMAC-SHA-512 hash to authenticate.
 
 ## Demo:
