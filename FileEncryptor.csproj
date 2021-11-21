@@ -2,8 +2,11 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
+	    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
     <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
 </Project>

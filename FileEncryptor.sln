@@ -1,20 +1,29 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31105.61
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileEncryptor", "FileEncryptor.csproj", "{3872566F-AD7C-42C0-9B47-58A4A894F16A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileEncryptor", "FileEncryptor.csproj", "{3872566F-AD7C-42C0-9B47-58A4A894F16A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|ARM32 = Debug|ARM32
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|ARM32 = Release|ARM32
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Debug|ARM32.ActiveCfg = Debug|Any CPU
+		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Release|ARM32.ActiveCfg = Release|Any CPU
+		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Release|ARM32.Build.0 = Release|Any CPU
+		{3872566F-AD7C-42C0-9B47-58A4A894F16A}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
